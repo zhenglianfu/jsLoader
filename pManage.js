@@ -160,7 +160,7 @@
 			} else if (src.indexOf('./')) {
 				return root + src.substr(1);
 			} else if (src.indexOf('../')) {
-				return Util.caculatePath(src.substr(2), root.substr(0, root.lastIndexOf('/')));
+				return Util.caculatePath(src.substr(3), root.substr(0, root.lastIndexOf('/')));
 			}
 			return root + '/' + src; 
 		},
