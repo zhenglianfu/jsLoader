@@ -6,65 +6,67 @@
 			src = script.src;
 		return src.substr(0, src.lastIndexOf('/'));
 	}(),
-	doc_dir = function(href) {
-		return href.substr(0, href.lastIndexOf('/'));
-	}(location.href),
 	paths = {},
 	moduleCache = {},
 	manifestCache = {},
-	moduleManifest = [],
-	styleLoaded = {};
+	moduleManifest = [];
 	/* util functions */
 	var rtrim = /^\s+|\s+$/g;
 	var Util = {
 		foo : function(){},
 		orderLoadStyle : function(modules){
+			/** should not cache style load state **/
 			var i = 0, len = modules.length, styleList, j, style_length, link, head = doc.head, style, module;
 			for (; i < len; i++) {
 				module = modules[i];
-				if (styleLoaded[module] === undefined) {
-					styleList = Util.getManifeset(module).styleList;
-					for (j = 0, style_length = styleList.length; j < style_length; j++) {
-						style = styleList[j];
+				styleList = Util.getManifeset(module).styleList;
+				for (j = 0, style_length = styleList.length; j < style_length; j++) {
+					style = styleList[j];
+					if (style.href) {
 						link = doc.createElement('link');
 						link.rel = 'stylesheet';
 						link.type = 'text/css';
-						link.href = Util.caculatePath(style.href);
+						link.href = Util.caculatePath(style.href, js_dir);
 						head.appendChild(link);
 					}
-					styleLoaded[module] = 0;
 				}
 			}
 		},
 		orderLoadModule : function(modules, fn, errors){
-			var i = 0, len = modules.length, data = {};
-			// reverse it, as a stack
+			/** load files one by one, step as the modules **/
+			/** here I made it synchronized load js
+			 * 	asynchronous load js please see 'http://headjs.com/site/download.html' or 'http://stevesouders.com/controljs/'
+			 **/
+			var i = 0, len = modules.length, data = {}, token;
+			// reverse it, as a stack LIFO
 			modules = modules.reverse();
 			errors = errors || [];
 			fn = fn || Util.foo;
 			for (; i < len; i ++) {
-				fn = function (i, g) {
-					return function(){
-						var token = modules[i];
-						if (moduleCache[token]) {
-							data[token] = moduleCache[token];
-							g(data, errors); 
-						} else {
-							Util.loadJSFile(Util.caculatePath(paths[token].url, js_dir), token, function(){
-								var name = this.name;
-								this.ready = true;
-								moduleCache[name] = Util.getObjFromNS(name);
-								data[name] = moduleCache[name]; 
+				token = modules[i];
+				if (paths[token].url) {
+					fn = function (token, g) {
+						return function(){
+							if (moduleCache[token]) {
+								data[token] = moduleCache[token];
 								g(data, errors); 
-							}, function(){
-								errors.push({
-									msg : 'url of ' + this.name + ' is incorrect : ' + this.src
+							} else {
+								Util.loadJSFile(Util.caculatePath(paths[token].url, js_dir), token, function(){
+									var name = this.name;
+									this.ready = true;
+									moduleCache[name] = Util.getObjFromNS(name);
+									data[name] = moduleCache[name]; 
+									g(data, errors); 
+								}, function(){
+									errors.push({
+										msg : 'url of ' + this.name + ' is incorrect : ' + this.src
+									});
+									g(data, errors);
 								});
-								g(data, errors);
-							});
-						}
-					};
-				}(i, fn);
+							}
+						};
+					}(token, fn);
+				}
 			}
 			fn(data, errors);
 		},
@@ -155,12 +157,15 @@
 		},
 		caculatePath : function(src, dir){
 			var root = dir || js_dir;
+			src = Util.trim(src);
 			if (src[0] === '/') {
 				return root + src;
-			} else if (src.indexOf('./')) {
+			} else if (src[0] === '.' && src.indexOf('./') === 0) {
 				return root + src.substr(1);
-			} else if (src.indexOf('../')) {
+			} else if (src[0] === '.' && src.indexOf('../') === 0) {
 				return Util.caculatePath(src.substr(3), root.substr(0, root.lastIndexOf('/')));
+			} else if (src.indexOf('http:') === 0 || src.indexOf('https:') === 0) {
+				return src;
 			}
 			return root + '/' + src; 
 		},
@@ -181,10 +186,10 @@
 						msg : 'module ' + m + ' is not exist in configuration'
 					});
 				}
-				// load style resource first  
-				Util.orderLoadStyle(requires);
-				Util.orderLoadModule(requires, callback, errors);
 			}
+			// load style resource first  
+			Util.orderLoadStyle(requires);
+			Util.orderLoadModule(requires, callback, errors);
 		},
 		addModule : function(token, obj){
 			/**
@@ -196,8 +201,8 @@
 			 * */
 			paths[token] = {
 					url : obj.url,
-					name_space : obj.name_space,
-					module : obj.module
+					name_space : obj.name_space || 'window',
+					module : obj.module || 'window'
 			};
 			var manifest = {
 					name : token,
@@ -208,19 +213,23 @@
 			moduleManifest.push(manifest);
 		}
 	};
-	// interface
-	win.PManger = {
+	// interface  PManager finished 
+	win.PManager = {
 			loadModule : Util.loadModule,
 			addModule : Util.addModule
 	};
-	win.Util = Util;
-	// build in  modules, add the most usually modules 
+	
+	/** 
+	 * build in  modules, add the most usually modules
+	 * support css dynamic loaded
+	 * @watchOut 所有url路径以该js所在目录为基准
+	 * */
 	(function(modules){
 		var i = 0, len = modules.length, token, t; 
 		for (; i < len; i++) {
 			t = modules[i];
 			for (var token in t) {
-				PManger.addModule(token, t[token]);
+				PManager.addModule(token, t[token]);
 				break;
 			}
 		}
@@ -239,27 +248,27 @@
 			   require : ['jquery'],
 			   styleList : [{href : '/jquery-ui/1.10.2/css/jquery-ui.css'}]
 		   }
-	   },{
-		   'grid' : {
-			   url : '/jq_ext/grid.js', 
-			   name_space : '$.fn', 
-			   module : 'grid',
-			   require : ['jquery']
+	   },
+	   {
+		   'underscore' : {
+			   url : 'http://underscorejs.org/underscore.js',
+			   name_space : 'window',
+			   module : '_'
 		   }
-	   },{
-		   'ajaxJSON' : {
-			   url : '/jq_ext/ajaxJSON.js',
-			   name_space : '$',
-			   module : 'ajaxJSON',
-			   require : ['jquery', 'jqueryUI']
+	   },
+	   {
+		   'backbone' : {
+			   url : 'http://backbonejs.org/backbone.js',
+			   name_space : 'window',
+			   module : 'Backbone',
+			   require : ['jquery', 'underscore']
 		   }
-	   },{
-		   'test' : {
-			   url : '/test/test.js',
-			   name_space : 'App.Manager',
-			   module : 'test',
-			   require : ['ajaxJSON', 'grid'],
-			   styleList : [{href : '/test/test.css'}]
+	   },
+	   {
+		   'require' : {
+			   url : 'http://requirejs.org/docs/release/2.1.15/comments/require.js',
+			   name_space : 'window',
+			   module : 'require'
 		   }
-	   }]));
+	   ]));
 }(window));
