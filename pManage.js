@@ -36,6 +36,7 @@
 			/** load files one by one, step as the modules **/
 			/** here I made it synchronized load js
 			 * 	asynchronous load js please see 'http://headjs.com/site/download.html' or 'http://stevesouders.com/controljs/'
+			 * 
 			 **/
 			var i = 0, len = modules.length, data = {}, token;
 			// reverse it, as a stack LIFO
@@ -204,13 +205,32 @@
 					name_space : obj.name_space || 'window',
 					module : obj.module || 'window'
 			};
-			var manifest = {
+			
+			var manifest = Util.getManifeset(token),
+				t = {
 					name : token,
 					index : moduleManifest.length,
 					require : Util.caculateDependence(obj.require),
 					styleList : obj.styleList || []
-			};
-			moduleManifest.push(manifest);
+				};
+			if (manifest) {
+				// override old manifest object
+				t.index = manifest.index;
+				moduleManifest[manifest.index] = t;
+				// clear cache
+				Util.clearCache(token);
+			} else {
+				moduleManifest.push(t);
+			}
+		},
+		clearCache : function(token) {
+			if (token) {
+				manifestCache[token] = null;
+				moduleCache[token] = null;
+			} else {
+				manifestCache = {};
+				moduleCache = {};
+			}
 		}
 	};
 	// interface  PManager finished 
@@ -248,8 +268,7 @@
 			   require : ['jquery'],
 			   styleList : [{href : '/jquery-ui/1.10.2/css/jquery-ui.css'}]
 		   }
-	   },
-	   {
+	   },{
 		   'underscore' : {
 			   url : 'http://underscorejs.org/underscore.js',
 			   name_space : 'window',
@@ -270,5 +289,5 @@
 			   name_space : 'window',
 			   module : 'require'
 		   }
-	   ]));
+	   }]));
 }(window));
