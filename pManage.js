@@ -1,9 +1,12 @@
 (function(win){
 	var doc = win.document,
+	main = null,
 	js_dir = function(){
 		var scripts = doc.getElementsByTagName('script'),
 			script = scripts[scripts.length - 1],
 			src = script.src;
+		// main js, if existed load it, root is doc_dir 
+		main = script.getAttribute('data-main');
 		return src.substr(0, src.lastIndexOf('/'));
 	}(),
 	paths = {},
@@ -255,18 +258,9 @@
 		}
 	}([{
 		   'jquery' : {
-			   url : '/jquery/1.9.1/jquery.js',
+			   url : 'http://code.jquery.com/jquery-1.11.1.js',
 			   name_space : 'window',
 			   module : 'jQuery'
-		   }
-	   },
-	   {
-		   'jqueryUI' : {
-			   url : '/jquery-ui/1.10.2/jquery-ui.js', 
-			   name_space : 'window', 
-			   module : 'jQuery',
-			   require : ['jquery'],
-			   styleList : [{href : '/jquery-ui/1.10.2/css/jquery-ui.css'}]
 		   }
 	   },{
 		   'underscore' : {
@@ -290,4 +284,9 @@
 			   module : 'require'
 		   }
 	   }]));
+	// main method loaded if existed
+	// url based on path of html
+	if (main) {
+		Util.loadJSFile(main);
+	}
 }(window));
