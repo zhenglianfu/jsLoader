@@ -1,18 +1,40 @@
 (function(win){
-	var doc = win.document,
-	main = null,
+	var doc = document,
+	// main js, if existed load it, root is doc_dir 
+	_main_ = null,
 	js_dir = function(){
 		var scripts = doc.getElementsByTagName('script'),
 			script = scripts[scripts.length - 1],
 			src = script.src;
-		// main js, if existed load it, root is doc_dir 
-		main = script.getAttribute('data-main');
+		_main_ = script.getAttribute('data-main');
 		return src.substr(0, src.lastIndexOf('/'));
 	}(),
+	browser = function(ua, browsers){
+		var match, t, obj = {};
+		for (var i = 0, len = browsers.length; i < len; i++) {
+			t = browsers[i];
+			if ((match = ua.match(t.reg))) {
+				obj.name = t.name;
+				obj['is' + t.name] = true;
+				obj.version = parseInt(match[1]);
+				return obj;
+			}
+		}
+	}(navigator.userAgent, [{
+		name : 'IE',
+		reg : /MSIE\s*([\d\.]+;)/i
+	},{
+		name : 'FireFox', 
+		reg : /Firefox\/(\d+)/i
+	},{
+		name : 'Chrome',
+		reg : /Chrome\/(\d+)/i
+	}]),
 	paths = {},
 	moduleCache = {},
 	manifestCache = {},
 	moduleManifest = [];
+	
 	/* util functions */
 	var rtrim = /^\s+|\s+$/g;
 	var Util = {
@@ -36,8 +58,8 @@
 			}
 		},
 		orderLoadModule : function(modules, fn, errors){
-			/** load files one by one, step as the modules **/
-			/** here I made it synchronized load js
+			/** load files one by one, step as the items defined in modules **/
+			/** here I made it load synchronized  
 			 * 	asynchronous load js please see 'http://headjs.com/site/download.html' or 'http://stevesouders.com/controljs/'
 			 * 
 			 **/
@@ -112,7 +134,7 @@
 			var script = doc.createElement('script');
 			script.name = m_name;
 			if (script.readyState) {
-				script.readystatechange = function(){
+				script.onreadystatechange = function(){
 					if (script.readyState === 'loaded' || script.readyState === 'complete') {
 						script.onreadystatechange = null;
 						onload && onload.call(script);
@@ -195,6 +217,22 @@
 			Util.orderLoadStyle(requires);
 			Util.orderLoadModule(requires, callback, errors);
 		},
+		// add modules, if modules is array the add each item into configuration object
+		// if modules is a string, then call addModule method to add one module, parameter obj must be not null 
+		addModules : function(modules, obj){
+			var i, len, token;
+			if (typeof modules === 'string') {
+				return Util.addModule(modules, obj);
+			}
+			modules = modules || [];
+			for (i = 0, len = modules.length; i < len; i++) {
+				obj = modules[i];
+				for (token in obj) {
+					Util.addModule(token, obj[token]);
+					break;
+				}
+			}
+		},
 		addModule : function(token, obj){
 			/**
 			 * token is the identity of the module you add in
@@ -234,14 +272,22 @@
 				manifestCache = {};
 				moduleCache = {};
 			}
+		},
+		mainMethod : function(){
+			// main method loaded if existed
+			// url based on path of html
+			if (_main_) {
+				Util.loadJSFile(_main_);
+			}
 		}
 	};
-	// interface  PManager finished 
+	// interface PManager finished 
 	win.PManager = {
 			loadModule : Util.loadModule,
-			addModule : Util.addModule
+			addModule : Util.addModules
 	};
 	
+	// ext work
 	/** 
 	 * build in  modules, add the most usually modules
 	 * support css dynamic loaded
@@ -268,25 +314,34 @@
 			   name_space : 'window',
 			   module : '_'
 		   }
-	   },
-	   {
+	   },{
 		   'backbone' : {
 			   url : 'http://backbonejs.org/backbone.js',
 			   name_space : 'window',
 			   module : 'Backbone',
 			   require : ['jquery', 'underscore']
 		   }
-	   },
-	   {
+	   },{
 		   'require' : {
 			   url : 'http://requirejs.org/docs/release/2.1.15/comments/require.js',
 			   name_space : 'window',
 			   module : 'require'
 		   }
 	   }]));
+	// suck ie fix 
+	if (browser.isIE && browser.version < 9) {
+		doc.head = doc.getElementsByTagName('head')[0];
+		Array.prototype.indexOf = function(x){
+			var i = 0, len = this.length;
+			for (; i < len; i++) {
+				if (this[i] === x) {
+					return i;
+				}
+			}
+			return -1;
+		};
+	}
 	// main method loaded if existed
 	// url based on path of html
-	if (main) {
-		Util.loadJSFile(main);
-	}
+	Util.mainMethod();
 }(window));
