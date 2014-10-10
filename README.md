@@ -41,7 +41,7 @@ PManger.loadModule('jqueryUI', function(obj, error){
 
 <pre>
 <code>
-// load the jqueryUI and jquery asynchronous, <b>can't ensure the load order<b><br>
+// load the jqueryUI and jquery asynchronous, <b>can't ensure the load order</b><br>
 PManger.loadModule('jqueryUI', function(obj, error){
   console.log(obj.jqueryUI, error)
 }, true);
