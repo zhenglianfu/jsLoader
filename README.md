@@ -26,10 +26,25 @@ PManger.addModule('jqueryUI', {
 
 <pre>
 <code>
+PManger.loadModule(moduleStr, callback, isAsyn);  
+</code>
+</pre>
+
+<pre>
+<code>
 // load the jqueryUI, it will load the jquery first, then load the jqueryUI resource<br>
 PManger.loadModule('jqueryUI', function(obj, error){
   console.log(obj.jqueryUI, error)
 });
+</code>
+</pre>
+
+<pre>
+<code>
+// load the jqueryUI and jquery asynchronous, <b>can't ensure the load order<b><br>
+PManger.loadModule('jqueryUI', function(obj, error){
+  console.log(obj.jqueryUI, error)
+}, true);
 </code>
 </pre>
 
