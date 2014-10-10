@@ -1,7 +1,7 @@
 (function(win){
 	var doc = document,
 	// main js, if existed load it, root is doc_dir 
-	_main_ = null,
+	_main_,
 	js_dir = function(){
 		var scripts = doc.getElementsByTagName('script'),
 			script = scripts[scripts.length - 1],
@@ -41,10 +41,26 @@
 	var rtrim = /^\s+|\s+$/g;
 	var Util = {
 		foo : function(){},
+		getFirstStyle : function(){
+			var head = doc.head, nodes, len, i, node;
+			if (head.querySelectorAll) {
+				return head.querySelectorAll('link,style')[0];
+			} else {
+				nodes = head.childNodes; 
+				len = nodes.length;
+				for (i = 0; i < len; i++) {
+					node = nodes[i]; 
+					if (node.nodeType == 1 && (node.nodeName.toUpperCase() === 'LINK' || node.nodeName.toUpperCase() === 'STYLE')) {
+						return node;
+					}
+				}
+			}
+		},
+		// css样式将在<head>的第一个 <link>/<style> DOM对象之前插入（如果有）
 		orderLoadStyle : function(modules){
 			/** should not cache style load state **/
 			var i = 0, len = modules.length, styleList, j, style_length, link, style, module,
-				userLink = doc.getElementsByTagName('link')[0], head = doc.head;
+				userStyle = Util.getFirstStyle(), head = doc.head;
 			for (; i < len; i++) {
 				module = modules[i];
 				styleList = Util.getManifeset(module).styleList;
@@ -55,7 +71,7 @@
 						link.rel = 'stylesheet';
 						link.type = 'text/css';
 						link.href = style.href;
-						head.insertBefore(link, userLink);
+						head.insertBefore(link, userStyle);
 					}
 				}
 			}
@@ -67,7 +83,7 @@
 			 **/
 			/**
 			 * #  bug : wait for parse js file completed, then load the next js file  #
-			 * js文件解析完成之后再加载下一个(js引擎不够快，文件过大)
+			 * js文件解析完成之后再加载下一个(js引擎不够快，文件过大导致)
 			 * */ 
 			var i = 0, len = modules.length, data = {}, token;
 			// reverse it, as a stack LIFO
@@ -150,14 +166,14 @@
 		},
 		defer : function(cond, fn, duration){
 			var r = typeof cond === 'function' ? cond() : cond;
-			duration = duration || 50; 
-			if (r === true) {
-				fn && fn();
-			} else {
-				setTimeout(function(){
+			duration = duration || 50;
+			setTimeout(function(){
+				if (r === true) {
+					fn && fn();
+				} else {
 					Util.defer(cond, fn, duration);
-				}, duration);
-			}
+				}
+			}, duration);
 		},
 		trim : function(str){
 			if (str == null) {
@@ -207,6 +223,7 @@
 				script.onload = onload;
 				script.onerror = onerror;
 			}
+			script.type = 'text/javascript';
 			script.src = url;
 			oldScript ? oldScript.parentNode.replaceChild(script, oldScript) : doc.head.appendChild(script);
 			return script;
