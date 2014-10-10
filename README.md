@@ -4,8 +4,8 @@ jsPackage
 packge manager js, caculate dependce of modules when load a js module
 
 <pre>
-// add jquery and jqueryUI module info into PManager controller<br>
 <code>
+// add jquery and jqueryUI module info into PManager controller<br>
 PManger.addModule('jquery', {
   url : '****.js',
   name_space : 'window',
