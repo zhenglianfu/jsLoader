@@ -1,7 +1,7 @@
 {
 	"name" : "jsLoader",
 	"version" : "0.1.0",
-	"description" : "the fucking best plugin",
+	"description" : "useful jsLoader",
 	"devDependencies" : {
 		"grunt" : "~0.4.1",
 		"grunt-contrib-jshint" : "~0.6.0",
