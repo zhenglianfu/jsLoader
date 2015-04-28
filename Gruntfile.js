@@ -7,7 +7,8 @@ module.exports = function(grunt) {
         separator: ';'
       },
       dist: {
-        src: '<%= pkg.name %>.js'
+        src: '<%= pkg.name %>.js',
+        dest: '<%= pkg.name %>.js'
       }
     },
     uglify: {
