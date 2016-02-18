@@ -3,7 +3,7 @@
     // main js, if existed load it, root is doc_dir
         _main_,
         _config_,
-        html_dir = location.protocol + '//' + location.host + location.pathname,
+        html_dir = location.protocol + '//' + location.host + location.pathname.substring(0, location.pathname.lastIndexOf('/')),
         js_dir = function(){
             var scripts = doc.getElementsByTagName('script'),
                 script = scripts[scripts.length - 1],
@@ -24,6 +24,7 @@
                     return obj;
                 }
             }
+            return {};
         }(navigator.userAgent, [{
             name : 'IE',
             reg : /MSIE\s*([\d\.]+;)/i
@@ -327,7 +328,7 @@
             needRefreshDepend = false;
         },
         referJSPath : function(url, baseDir){
-            baseDir = baseDir || js_dir;
+            baseDir = baseDir || html_dir;
             if (url.indexOf('../') == 0) {
                 url = url.substring(3);
                 baseDir = baseDir.substring(0, baseDir.lastIndexOf('/'));
@@ -349,7 +350,7 @@
              * obj.styleList : the css files of this module
              * */
             paths[token] = {
-                url : obj.jsPath ? Util.referJSPath(obj.url) : obj.url,
+                url : obj.jsPath ? Util.referJSPath(obj.url, js_dir) : obj.url,
                 name_space : obj.name_space || 'window',
                 module : obj.module || 'window'
             };
@@ -419,7 +420,7 @@
                  default:
                  console.error('js loader can\'t support file type ' + file_suffix);
              } 
-             Util.loadJSFile(Util.referJSPath(_config_), '_config_' + Date.now(), function(){
+             Util.loadJSFile(Util.referJSPath(_config_, html_dir), '_config_' + Date.now(), function(){
                 _main_ && Util.loadJSFile(_main_, html_dir);
              });
         }

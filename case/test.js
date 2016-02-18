@@ -1,6 +1,13 @@
-PManager.load('jquery', function(obj, err){
-    var $ = obj.jquery;
-    setInterval(function(){
-        $('#time').text((new Date()).toString());   
-    }, 1000);
+PManager.load('jquery, swiper', function(obj, err){
+    console.log(obj, err);
+    var $ = obj.jquery,
+        Swiper = obj.swiper;
+    setInterval(updateTime, 1000);
+    function updateTime(){
+        $('#time').text((new Date()).toString());
+    }
+    updateTime();
+    new Swiper('.swiper-container', {
+        autoplay: 2000
+    })
 });
