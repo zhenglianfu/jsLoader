@@ -90,7 +90,7 @@
              **/
             /**
              * #  bug : wait for parse js file completed, then load the next js file  #
-             * js文件解析完成之后再加载下一个(js引擎不够快，文件过大导致)
+             * js文件解析完成之后再加载下一个
              * */
             var i = 0, len = modules.length, data = {}, token;
             // reverse it, as a stack LIFO
