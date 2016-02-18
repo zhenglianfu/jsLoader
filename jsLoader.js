@@ -2,12 +2,14 @@
     var doc = document,
     // main js, if existed load it, root is doc_dir
         _main_,
-        host = location.host,
+        _config_,
+        html_dir = location.protocol + '//' + location.host + location.pathname,
         js_dir = function(){
             var scripts = doc.getElementsByTagName('script'),
                 script = scripts[scripts.length - 1],
                 src = script.src;
             _main_ = script.getAttribute('data-main');
+            _config_ = script.getAttribute('data-config');
             return src.substr(0, src.lastIndexOf('/'));
         }(),
         needRefreshDepend = false,
@@ -304,7 +306,6 @@
                     obj = modules[i];
                     for (token in obj) {
                         Util.addModule(token, obj[token]);
-                        break;
                     }
                 }
             }
@@ -334,7 +335,7 @@
             } else if (url.indexOf('./') == 0) {
                 url = url.substring(2);
             } else if (url.indexOf('/') == 0) {
-                baseDir = host;
+                baseDir = location.protocol + '//' + location.host;
             }
             return baseDir + '/' + url;
         },
@@ -380,11 +381,47 @@
             }
         },
         mainMethod : function(){
+            // configuration if existed
+            if (_config_) {
+                try{
+                    // json string
+                    var config = JSON.stringify(_config_);
+                    Util.addModules(config);
+                    Util.loadJSFile(_main_);
+                } catch(e){
+                    Util.configMethod();
+                }         
+            } else 
             // main method loaded if existed
             // url based on path of html
             if (_main_) {
-                Util.loadJSFile(_main_);
+                Util.loadJSFile(_main_, html_dir);
             }
+        },
+        configMethod: function(){
+             // load config resource support *.js/*.json
+             /**
+              * example: config.json
+              * [{"jquery": {"url": "*.js", "module": "jQuery", "require": [], "styleList": [{"href": "*.css"}]}}, 
+              *  {"util": {"url": "*.js", "module": "util, "require": ["jquery"]}]
+              *
+              * example config.js
+              * PManager.add('jquery', {url: '*.js', module: 'jQuery'});
+              * PManager.add([{jquery: {url: '*.js', module: 'jQuery'}}, ...]);
+              */
+             var file_suffix = _config_.substring(_config_.lastIndexOf('.') + 1);
+             switch(file_suffix){
+                 case 'js': 
+                 break;
+                 case 'json':
+                    // come soon
+                 break;
+                 default:
+                 console.error('js loader can\'t support file type ' + file_suffix);
+             } 
+             Util.loadJSFile(Util.referJSPath(_config_), '_config_' + Date.now(), function(){
+                _main_ && Util.loadJSFile(_main_, html_dir);
+             });
         }
     };
     // suck IE fix
