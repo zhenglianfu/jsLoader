@@ -41,8 +41,7 @@
         paths = {},
         moduleCache = {},
         manifestCache = {},
-        moduleManifest = [],
-        core_slice = [].slice;
+        moduleManifest = [];
 
     /* util functions */
     var rtrim = /^\s+|\s+$/g;
@@ -93,11 +92,10 @@
              * js文件解析完成之后再加载下一个
              * */
             var i = 0, len = modules.length, data = {}, token;
-            // reverse it, as a stack LIFO
-            modules = modules.reverse();
             errors = errors || [];
             fn = fn || Util.foo;
-            for (; i < len; i ++) {
+            // order as a stack FILO
+            for (i = len - 1; i >= 0 ; i --) {
                 token = modules[i];
                 if (paths[token].url) {
                     fn = function (token, g) {
@@ -205,13 +203,17 @@
         getDependModules : function(module, imports){
             var depends = Util.getManifeset(module).depend, i = 0, len = depends.length, item;
             imports = imports || [];
+            // duplicate
+            if (imports.indexOf(module) >= 0) {
+            	return imports;
+            }
             for (; i < len; i ++) {
                 item = moduleManifest[depends[i]];
                 if (imports.indexOf(item.name) < 0) {
                     if (item.depend.length) {
                         imports = Util.getDependModules(item.name, imports);
                     }
-                    imports.push(item.name);
+                    imports.indexOf(item.name) < 0 && imports.push(item.name);
                 }
             }
             return imports;
@@ -279,7 +281,7 @@
             for (; i < ns_len; i++) {
                 m = Util.trim(ns[i]);
                 if (paths[m]) {
-                    requires = requires.concat(Util.getDependModules(m));
+                    requires = Util.getDependModules(m, requires);
                     requires.push(m);
                 } else {
                     errors.push({
@@ -381,6 +383,11 @@
                 moduleCache = {};
             }
         },
+        setModuleValue: function(moduleName, value){
+            if (value != null) {
+                moduleCache[moduleName] = value;    
+            }
+        },
         mainMethod : function(){
             // configuration if existed
             if (_config_) {
@@ -396,7 +403,7 @@
             // main method loaded if existed
             // url based on path of html
             if (_main_) {
-                Util.loadJSFile(_main_, html_dir);
+                Util.loadJSFile(_main_);
             }
         },
         configMethod: function(){
@@ -421,7 +428,7 @@
                  console.error('js loader can\'t support file type ' + file_suffix);
              } 
              Util.loadJSFile(Util.referJSPath(_config_, html_dir), '_config_' + Date.now(), function(){
-                _main_ && Util.loadJSFile(_main_, html_dir);
+                _main_ && Util.loadJSFile(_main_);
              });
         }
     };
@@ -441,7 +448,8 @@
     // interface PManager finished
     win.PManager = {
         load : Util.loadModule,
-        add : Util.addModules
+        add : Util.addModules,
+        setModuleValue: Util.setModuleValue
     };
     // main
     Util.mainMethod();
