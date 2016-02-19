@@ -403,7 +403,7 @@
             // main method loaded if existed
             // url based on path of html
             if (_main_) {
-                Util.loadJSFile(_main_, html_dir);
+                Util.loadJSFile(_main_);
             }
         },
         configMethod: function(){
@@ -428,7 +428,7 @@
                  console.error('js loader can\'t support file type ' + file_suffix);
              } 
              Util.loadJSFile(Util.referJSPath(_config_, html_dir), '_config_' + Date.now(), function(){
-                _main_ && Util.loadJSFile(_main_, html_dir);
+                _main_ && Util.loadJSFile(_main_);
              });
         }
     };
